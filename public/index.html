@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Facebook Page Scraper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4267B2;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #365899;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #e7f3e8;
+            color: #2d5a27;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Facebook Page Scraper</h1>
+    <div class="form-group">
+        <label for="accessToken">Facebook Access Token:</label>
+        <input type="text" id="accessToken" name="accessToken" required>
+    </div>
+    <div class="form-group">
+        <label for="pageId">Facebook Page ID:</label>
+        <input type="text" id="pageId" name="pageId" required>
+    </div>
+    <div class="form-group">
+        <label for="webhookUrl">Webhook URL (optional - overrides server .env):</label>
+        <input type="text" id="webhookUrl" name="webhookUrl" placeholder="https://your-webhook.example/endpoint">
+    </div>
+    <div class="form-group">
+        <label>
+            <input type="checkbox" id="sendIndividually" name="sendIndividually">
+            Send each post individually to the webhook
+        </label>
+    </div>
+    <button onclick="scrapeData()">Scrape Posts</button>
+    <div id="result"></div>
+
+    <script>
+        // Prefill webhook input from localStorage
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('webhookUrl');
+            if (saved) document.getElementById('webhookUrl').value = saved;
+        });
+
+        async function scrapeData() {
+            const accessToken = document.getElementById('accessToken').value;
+            const pageId = document.getElementById('pageId').value;
+            const webhookUrlInput = document.getElementById('webhookUrl');
+            const resultDiv = document.getElementById('result');
+
+            if (!accessToken || !pageId) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = 'Please fill in all fields';
+                return;
+            }
+
+            try {
+                resultDiv.textContent = 'Processing...';
+                const webhookUrl = webhookUrlInput.value;
+                const sendIndividually = !!document.getElementById('sendIndividually').checked;
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ accessToken, pageId, webhookUrl, sendIndividually })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'success';
+                    resultDiv.textContent = `Successfully scraped and sent ${data.totalPosts || 0} posts to webhook.`;
+                    // Save webhook URL locally for convenience (if provided)
+                    if (webhookUrl) {
+                        try { localStorage.setItem('webhookUrl', webhookUrl); } catch (e) { /* ignore */ }
+                    }
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = data.error || 'An error occurred';
+                }
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = 'An error occurred while processing your request';
+            }
+        }
+    </script>
+</body>
+</html>
