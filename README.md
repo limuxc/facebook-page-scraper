@@ -24,7 +24,7 @@ This project provides:
 1. Install dependencies
 
 ```bash
-cd crap
+cd scrap
 npm install
 ```
 
